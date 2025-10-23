@@ -1,4 +1,9 @@
-transformers
+# CPU-only torch; pin to stable versions you use
+--extra-index-url https://download.pytorch.org/whl/cpu
 torch
-boto3
+
+transformers
+tokenizers
 safetensors
+boto3
+
