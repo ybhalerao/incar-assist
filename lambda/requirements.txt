@@ -1,0 +1,4 @@
+transformers
+torch
+boto3
+safetensors
