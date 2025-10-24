@@ -6,4 +6,6 @@ transformers
 tokenizers
 safetensors
 boto3
-
+bitsandbytes
+accelerate
+sklearn
