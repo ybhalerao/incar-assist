@@ -1,6 +1,10 @@
+import os
+import sys
+import logging
+import json
+import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
 from peft import PeftModel
-import torch
 
 #aws pmi settings
 max_len = 128
@@ -54,7 +58,7 @@ def handler(event, context):
     try:
         max_new = 256
         history = event['text']
-        print(f"text: {text}")
+        print(f"text: {history}")
 
         inputs = _tokenizer(history, return_tensors="pt").to(_model.device)
         with torch.no_grad():
@@ -64,7 +68,7 @@ def handler(event, context):
                 do_sample=True,
                 temperature=0.7,
                 top_p=0.9,
-                pad_token_id=tok.eos_token_id,
+                pad_token_id=_tokenizer.eos_token_id,
             )
         result = {"text": _tokenizer.decode(out[0], skip_special_tokens=True)}
     except:
