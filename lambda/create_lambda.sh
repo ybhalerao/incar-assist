@@ -12,7 +12,7 @@ aws lambda create-function \
 --function-name incar_assist_ic  \
 --package-type Image \
 --code ImageUri=${ECR_URI} \
---role arn:aws:iam::922595822895:role/lambda-vpc-execution-role \
+--role arn:aws:iam::${ACCOUNT_ID}:role/lambda-vpc-execution-role \
 --timeout 30 \
 --memory-size 1024 \
 --ephemeral-storage '{"Size": 2048}' \
@@ -25,7 +25,7 @@ aws lambda create-function \
 --function-name incar_assist_tod  \
 --package-type Image \
 --code ImageUri=${ECR_URI} \
---role arn:aws:iam::922595822895:role/lambda-vpc-execution-role \
+--role arn:aws:iam::${ACCOUNT_ID}:role/lambda-vpc-execution-role \
 --timeout 30 \
 --memory-size 1024 \
 --ephemeral-storage '{"Size": 2048}' \
