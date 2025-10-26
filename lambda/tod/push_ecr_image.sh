@@ -3,17 +3,17 @@
 
 AWS_BUCKET=data-daizika-com
 AWS_MODEL_PREFIX=incar_assist/model
-MODEL=roberta-student-distilled
+MODEL_TOD=kd_lora_tinymistral
 ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 REGION=us-east-1
 REPO=incar-assist
-IMAGE_TAG=intent-classification
+IMAGE_TAG=tod
 ECR_URI=${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com/${REPO}/${IMAGE_TAG}:latest
 
 aws ecr get-login-password --region ${REGION} | docker login --username AWS --password-stdin ${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com
 
-rm -rf ./${MODEL}
-aws s3 cp s3://${AWS_BUCKET}/${AWS_MODEL_PREFIX}/${MODEL}/ ./${MODEL} --recursive
+rm -rf ./${MODEL_IC}
+aws s3 cp s3://${AWS_BUCKET}/${AWS_MODEL_PREFIX}/${MODEL_TOD}/ ./${MODEL_TOD} --recursive
 
 # Build for linux/amd64 (Lambda’s arch), unless you choose arm64 base image
 docker build -t ${REPO}/${IMAGE_TAG} .

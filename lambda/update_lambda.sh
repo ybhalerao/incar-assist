@@ -12,3 +12,12 @@ aws lambda update-function-code \
   --image-uri ${ECR_URI} \
   --publish
 
+IMAGE_TAG=tod
+ECR_URI=${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com/${REPO}/${IMAGE_TAG}:latest
+
+aws lambda update-function-code \
+  --region us-east-1 \
+  --function-name incar_assist_tod \
+  --image-uri ${ECR_URI} \
+  --publish
+
