@@ -53,6 +53,7 @@ try:
 
         # 1) Load the *base student tokenizer* (NOT from adapter dir)
         _tokenizer = AutoTokenizer.from_pretrained(__model_dir, use_fast=True)
+        print(f"_tokenizer: load complete")
 
         # 2) Load the *base student model*
         base = AutoModelForCausalLM.from_pretrained(
@@ -61,6 +62,7 @@ try:
             low_cpu_mem_usage=True,
         )
         #base.eval()
+        print(f"base: load complete")
         
         #_model = _apply_dynamic_quantization(base)
         _model = base
