@@ -27,7 +27,7 @@ aws lambda create-function \
 --code ImageUri=${ECR_URI} \
 --role arn:aws:iam::${ACCOUNT_ID}:role/lambda-vpc-execution-role \
 --timeout 30 \
---memory-size 1024 \
+--memory-size 8192 \
 --ephemeral-storage '{"Size": 2048}' \
 
   

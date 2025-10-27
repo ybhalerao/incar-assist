@@ -3,74 +3,103 @@ import sys
 import logging
 import json
 import torch
-from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
+from transformers import AutoTokenizer, AutoModelForCausalLM
 from peft import PeftModel
 
 #aws pmi settings
 max_len = 128
-torch_num_threads = 1
 
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
 
 # ---------- CPU-only, keep threads modest for Lambda ----------
-torch.set_num_threads(torch_num_threads)
+torch.set_num_threads(min(4, os.cpu_count() or 1))
+
+STOP_STRINGS = ("</s>", "[/INST]", "User:", "Assistant:")
 
 #Declare all globals here
 _tokenizer = None
 _model = None
 
+def _apply_dynamic_quantization(model: torch.nn.Module) -> torch.nn.Module:
+    """
+    Dynamic int8 quantization for CPU. Helps speed some Linear ops.
+    Safe no-op if it fails on this arch/wheel.
+    """
+    try:
+        from torch.ao.quantization import quantize_dynamic
+    except Exception:
+        try:
+            # older import path
+            from torch.quantization import quantize_dynamic
+        except Exception:
+            return model
+    try:
+        qmodel = quantize_dynamic(
+            model,
+            {torch.nn.Linear},  # quantize linear layers
+            dtype=torch.qint8
+        )
+        return qmodel
+    except Exception:
+        return model
+
 try:
     if _model is None and _tokenizer is None:
-        __teacher_model  = "mistralai/Mistral-7B-Instruct-v0.2"
         __student_model  = "TinyLlama/TinyLlama-1.1B-Chat-v1.0"  # base student *checkpoint*
-        __output_dir = os.path.join(os.environ['LAMBDA_TASK_ROOT'], 'kd_lora_tinymistral')
-        MODEL_DIR        = __output_dir
+        __model_dir = os.path.join(os.environ['LAMBDA_TASK_ROOT'], 'kd_lora_tinymistral_merged')
+        #__model_dir = os.path.join("/home/ec2-user/development/incar-assist/notebooks", 'kd_lora_tinymistral_merged')
+        print(f"__model_dir: {__model_dir}")
 
         # 1) Load the *base student tokenizer* (NOT from adapter dir)
-        _tokenizer = AutoTokenizer.from_pretrained(__student_model, use_fast=True)
-        if _tokenizer.pad_token is None:
-            _tokenizer.pad_token = _tokenizer.eos_token
-
-        # (Optional) 8-bit load to save RAM for inference
-        bnb = BitsAndBytesConfig(load_in_8bit=True)
+        _tokenizer = AutoTokenizer.from_pretrained(__model_dir, use_fast=True)
 
         # 2) Load the *base student model*
-        _model = AutoModelForCausalLM.from_pretrained(
-            __student_model,
-            device_map="auto",
-            quantization_config=bnb,                 # or remove if you want full-precision
-            torch_dtype=torch.bfloat16 if torch.cuda.is_available() else torch.float32,
+        base = AutoModelForCausalLM.from_pretrained(
+            __model_dir,
+            torch_dtype=torch.float32,
+            low_cpu_mem_usage=True,
         )
-
-        # 3) Apply the LoRA adapter saved in MODEL_DIR
-        _model = PeftModel.from_pretrained(_model, MODEL_DIR)
+        #base.eval()
+        
+        #_model = _apply_dynamic_quantization(base)
+        _model = base
         _model.eval()
-        
-        
-        
-except:
-    logger.error("ERROR: Unexpected error: Could not connect to AWS S3.")
-    sys.exit()
+        print("Model loaded")
 
+except:
+    msg = sys.exc_info()[0]
+    logger.info(msg)
+    sys.exit()
+    
 def handler(event, context):
     result = {}
     try:
-        max_new = 256
+        max_new = 64
         history = event['text']
         print(f"text: {history}")
-
-        inputs = _tokenizer(history, return_tensors="pt").to(_model.device)
+        
+        inputs = _tokenizer(history, return_tensors="pt")
+        input_len = inputs["input_ids"].size(1)
         with torch.no_grad():
             out = _model.generate(
                 **inputs,
                 max_new_tokens=max_new,
-                do_sample=True,
-                temperature=0.7,
-                top_p=0.9,
+                do_sample=False,
+                temperature=0.0,
+                top_p=1.0,
                 pad_token_id=_tokenizer.eos_token_id,
+                eos_token_id=_tokenizer.eos_token_id,
             )
-        result = {"text": _tokenizer.decode(out[0], skip_special_tokens=True)}
+        new_tokens = out[0, input_len:]
+        reply = _tokenizer.decode(new_tokens, skip_special_tokens=True).strip()
+        for stop in ("</s>", "[/INST]"):
+            idx = reply.find(stop)
+            if idx != -1:
+                reply = reply[:idx].strip()        
+        
+        result = {"text": reply}
+        
     except:
         msg = sys.exc_info()[0]
         logger.info(msg)

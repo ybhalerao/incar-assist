@@ -13,7 +13,7 @@ logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
 
 # ---------- CPU-only, keep threads modest for Lambda ----------
-torch.set_num_threads(torch_num_threads)
+torch.set_num_threads(min(4, os.cpu_count() or 1))
 
 #Declare all globals here
 _tokenizer = None
@@ -36,7 +36,8 @@ try:
         cfg = getattr(_model_int8, "config", None)
         _id2label = getattr(cfg, "id2label", None) if cfg else None        
 except:
-    logger.error("ERROR: Unexpected error: Could not connect to AWS S3.")
+    msg = sys.exc_info()[0]
+    logger.info(msg)
     sys.exit()
 
 def handler(event, context):

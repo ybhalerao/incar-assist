@@ -3,7 +3,7 @@
 
 AWS_BUCKET=data-daizika-com
 AWS_MODEL_PREFIX=incar_assist/model
-MODEL_TOD=kd_lora_tinymistral
+MODEL_TOD=kd_lora_tinymistral_merged
 ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 REGION=us-east-1
 REPO=incar-assist

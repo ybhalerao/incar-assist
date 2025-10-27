@@ -10,11 +10,11 @@ RUN python -m pip install --upgrade pip
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Make the directories
-RUN mkdir ${LAMBDA_TASK_ROOT}/kd_lora_tinymistral
+RUN mkdir ${LAMBDA_TASK_ROOT}/kd_lora_tinymistral_merged
 
 # Copy function code
 COPY incar_assist_tod.py ${LAMBDA_TASK_ROOT}/
-COPY /kd_lora_tinymistral/* ${LAMBDA_TASK_ROOT}/kd_lora_tinymistral/
+COPY kd_lora_tinymistral_merged/* ${LAMBDA_TASK_ROOT}/kd_lora_tinymistral_merged/
 
 # Set the handler (file.function)
 CMD ["incar_assist_tod.handler"]
